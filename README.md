@@ -1,70 +1,105 @@
-# 📊 Voice-Latency-Studio (Gen AI)
+# Voice-Latency-Studio
 
-This is a premium, high-value full-stack decoupled Proof-of-Concept (POC) project that forms a key pillar of the **AI/ML Developer Master Portfolio Matrix**.
+## 1. Project Overview
 
----
+**Project Type:** Full-stack proof-of-concept (FastAPI backend + React frontend)
+**Status:** Development
 
-## 🔬 Core Concept & Algorithm Framework
-STT/TTS turn-taking turnaround latency profiler, Barge-In models
+A voice-pipeline latency profiler: a FastAPI backend simulates a speech-to-text -> LLM -> text-to-speech turn and reports the latency of each stage, and a React + Vite frontend provides a dashboard to try it.
 
----
+The `VoicePipelineService` (`backend/app/services/voice_pipeline.py`) simulates STT and LLM latency with fixed `sleep` delays and a hardcoded transcript/response, then synthesizes the response audio for real using `gTTS` and reports per-stage and total latency in milliseconds.
 
-## 🗂️ Decoupled Architecture & Directory Tree
-The project features a clean, professional separation of concerns between frontend client layers and backend microservices.
+## 2. Core Features
 
-```text
+- FastAPI backend with a versioned API (`app/api/v1`) and a voice-pipeline service layer
+- Per-stage latency measurement (STT, LLM generation, TTS synthesis) plus total turnaround time
+- Real text-to-speech synthesis via `gTTS`; STT and LLM stages are currently simulated placeholders
+- React 18 + Vite single-page frontend dashboard
+- Backend serves the built frontend as static files when `frontend/dist` exists, so the whole app runs as one process
+- `mcp_server.py`: a stdio JSON-RPC Model Context Protocol server exposing a voice-turnaround measurement tool so AI agents/clients can call the service directly
+- Multi-stage Dockerfile (Node build stage + Python runtime stage) for a single deployable image
+
+## 3. Tech Stack
+
+| Component | Technology |
+|---|---|
+| Backend | FastAPI, Uvicorn, Pydantic, gTTS |
+| Frontend | React 18, Vite |
+| Packaging | Docker (multi-stage: `node:18-alpine` build + `python:3.10-slim` runtime) |
+
+## 4. Project Structure
+
+```
 Voice-Latency-Studio/
-├── frontend/               # React 18 + Vite Glassmorphic Client Workspace
-│   ├── src/
-│   │   ├── App.jsx         # Console Dashboard Interfaces
-│   │   └── index.css       # Custom Glassmorphism Theme Styling
-│   ├── vite.config.js      # Decoupled Vite Proxy Server Config
-│   └── package.json        # Frontend Node Dependencies
-│
-├── backend/                # Modular FastAPI Microservices Package
+├── frontend/           # React 18 + Vite client
+│   ├── src/App.jsx
+│   └── vite.config.js
+├── backend/
 │   ├── app/
-│   │   ├── core/           # Configuration management
-│   │   ├── api/v1/         # Endpoints & Router controllers
-│   │   └── services/       # Dynamic algorithm calculation models
-│   │
-│   ├── code/               # Native Cloud/Engine Inference Entrypoints
-│   ├── model/              # Serialized Model Weights & Mappings
-│   ├── metadata/           # Model Governance Audit Parameters
-│   ├── mcp_server.py       # Stdio JSON-RPC 2.0 Agentic MCP Interface
-│   ├── app.py              # Backend entrypoint runner
-│   └── requirements.txt    # Backend Python dependencies
-│
-├── Dockerfile              # Multi-Stage Build Configurations
-├── .dockerignore           # Container Exclusions Profile
-└── .gitignore              # Local Version Exclusions
+│   │   ├── core/       # configuration
+│   │   ├── api/v1/     # routes
+│   │   └── services/   # voice pipeline + latency logic
+│   ├── mcp_server.py   # MCP stdio server
+│   ├── app.py          # entrypoint used by the Docker image
+│   └── requirements.txt
+├── Dockerfile
+└── .dockerignore
 ```
 
----
+## 5. Prerequisites
 
-## 🤖 Native Agentic Integration (MCP Tool)
-This project features a native, zero-dependency **Model Context Protocol (MCP)** stdio server that allows AI agents to interact with the project programmatically:
+- Python 3.10+
+- Node.js 18+ (for frontend dev/build)
+- Docker (optional, for the packaged image)
 
-* **MCP Tool Name**: `measure_voice_turnaround`
-* **Description**: Track voice turnaround logs.
-* **Interface Protocol**: Stdio JSON-RPC 2.0 standard.
+## 6. How to Run
 
----
+### Local development
 
-## 🚀 Execution & Deployment Instructions
+```bash
+cd backend
+pip install -r requirements.txt
+python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
 
-### Method A: Local execution
-1. Run uvicorn:
-   ```bash
-   cd backend && python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000
-   ```
+In a separate terminal, for frontend dev with hot reload:
 
-### Method B: Containerized Execution (Docker)
-1. **Build the multi-stage image** from the project's root:
-   ```bash
-   docker build -t voice-latency-studio .
-   ```
-2. **Run the container**:
-   ```bash
-   docker run -p 8000:8000 voice-latency-studio
-   ```
-3. Access the visual dashboard at **`http://localhost:8000`**.
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+### Docker
+
+```bash
+docker build -t voice-latency-studio .
+docker run -p 8000:8000 voice-latency-studio
+```
+
+Then open `http://localhost:8000`.
+
+## 7. API Documentation
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/v1/run` | Runs the simulated STT -> LLM -> TTS turn and returns per-stage latency plus synthesized audio. |
+| GET | `/api/v1/tts/{filename}` | Fetches a previously synthesized audio file. |
+| GET | `/` | Serves the built frontend, when present. |
+
+## 8. Environment Variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `DEEPGRAM_API_KEY` | `dummy-deepgram` | Declared for a future real STT integration; not currently used to call Deepgram. |
+| `OPENAI_API_KEY` | `dummy-openai` | Declared for a future real LLM integration; not currently used to call OpenAI. |
+
+## 9. Known Limitations
+
+- STT and LLM stages are simulated with fixed delays and hardcoded text, not real model calls. Only TTS synthesis (via `gTTS`) is real.
+- `DEEPGRAM_API_KEY` / `OPENAI_API_KEY` are declared with dummy defaults but not yet wired into any actual API call.
+- No automated tests currently exist in the repository.
+
+## License
+
+No LICENSE file is present in this repository.
