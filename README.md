@@ -2,9 +2,6 @@
 
 ## 1. Project Overview
 
-**Project Type:** Full-stack proof-of-concept (FastAPI backend + React frontend)
-**Status:** Development
-
 A voice-pipeline latency profiler: a FastAPI backend simulates a speech-to-text -> LLM -> text-to-speech turn and reports the latency of each stage, and a React + Vite frontend provides a dashboard to try it.
 
 The `VoicePipelineService` (`backend/app/services/voice_pipeline.py`) simulates STT and LLM latency with fixed `sleep` delays and a hardcoded transcript/response, then synthesizes the response audio for real using `gTTS` and reports per-stage and total latency in milliseconds.
